@@ -120,6 +120,23 @@ def send_response(resp: Dict[str, Any]):
     sys.stdout.write(json.dumps(resp) + "\n")
     sys.stdout.flush()
 
+def monitor_stdin():
+    while True:
+        try:
+            line = sys.stdin.readline()
+            if not line.strip():
+                time.sleep(0.1)
+                continue
+            try:
+                request_data = json.loads(line)
+                response = asyncio.run(process_request(request_data))
+                if response:
+                    send_response(response)
+            except json.JSONDecodeError as e:
+                send_response({"jsonrpc": "2.0", "error": {"code": -32700, "message": str(e)}, "id": None})
+        except Exception as e:
+            logger.error(f"Unexpected error in STDIO loop: {e}", exc_info=True)
+
 async def run_server_oneshot():
     input_data = sys.stdin.read().strip()
     request = json.loads(input_data)
@@ -136,3 +153,9 @@ if __name__ == "__main__":
 
     if args.oneshot:
         asyncio.run(run_server_oneshot())
+    else:
+        stdin_thread = threading.Thread(target=monitor_stdin, daemon=True)
+        stdin_thread.start()
+        while stdin_thread.is_alive():
+            time.sleep(0.5)
+        

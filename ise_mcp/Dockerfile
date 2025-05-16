@@ -8,12 +8,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Set working directory
 WORKDIR /app
 
-# Copy source file
-COPY main.py .
-
 # Install Python dependencies
 RUN pip install --no-cache-dir requests pydantic
 RUN pip install python-dotenv
+
+# Copy source file
+COPY main.py .
+COPY urls.json .
 
 # Ensure logs appear in real time
 ENV PYTHONUNBUFFERED=1
