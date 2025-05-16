@@ -9,13 +9,17 @@ import requests
 from pydantic import BaseModel, Field, ValidationError
 from typing import Dict, List, Any, Optional
 from functools import partial
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(threadName)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("ISEMCPServer")
 
-ISE_BASE = "https://devnetsandboxise.cisco.com"
-USERNAME = "readonly"
-PASSWORD = "ISEisC00L"
+ISE_BASE = os.getenv("ISE_BASE")
+USERNAME = os.getenv("USERNAME")
+PASSWORD = os.getenv("PASSWORD")
 
 HEADERS = {
     "Accept": "application/json",
