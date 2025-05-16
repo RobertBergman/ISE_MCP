@@ -1,274 +1,342 @@
 [
     {
         "URL": "/ers/config/endpoint?size=100",
-        "Name": "Endpoints"
+        "Name": "Endpoints",
+        "FilterableFields": ["name", "description", "mac", "groupId", "staticGroupAssignment", "identityStore", "portalUser", "mdmServerName", "deviceType", "operatingSystem"]
     },
     {
         "URL": "/ers/config/identitygroup?size=100",
-        "Name": "Identity Groups"
+        "Name": "Identity Groups",
+        "FilterableFields": ["name", "description", "parent"]
     },
     {
         "URL": "/ers/config/idstoresequence?size=100",
-        "Name": "ID Store Sequences"
+        "Name": "ID Store Sequences",
+        "FilterableFields": ["name", "description", "idStoreName", "breakOnStoreFail"]
     },
     {
         "URL": "/ers/config/profilerprofile?size=100",
-        "Name": "Profiler Profiles"
+        "Name": "Profiler Profiles",
+        "FilterableFields": ["name", "description", "modelName", "policyName"]
     },
     {
         "URL": "/ers/config/internaluser?size=100",
-        "Name": "Internal Users"
+        "Name": "Internal Users",
+        "FilterableFields": ["name", "description", "firstName", "lastName", "email", "enabled", "identityGroups"]
     },
     {
         "URL": "/ers/config/allowedprotocols?size=100",
-        "Name": "Allowed Protocols"
+        "Name": "Allowed Protocols",
+        "FilterableFields": ["name", "description", "eapFastUsePacs", "allowPapAscii"]
     },
     {
         "URL": "/ers/config/adminuser?size=100",
-        "Name": "Admin Users"
+        "Name": "Admin Users",
+        "FilterableFields": ["name", "description", "firstName", "lastName", "enabled"]
     },
     {
         "URL": "/ers/config/activedirectory?size=100",
-        "Name": "Active Directory"
+        "Name": "Active Directory",
+        "FilterableFields": ["name", "description", "domain", "enablePassChange"]
     },
     {
         "URL": "/ers/config/authorizationprofile?size=100",
-        "Name": "Authorization Profiles"
+        "Name": "Authorization Profiles",
+        "FilterableFields": ["name", "description", "accessType", "daclName"]
     },
     {
         "URL": "/ers/config/downloadableacl?size=100",
-        "Name": "Downloadable ACLs"
+        "Name": "Downloadable ACLs",
+        "FilterableFields": ["name", "description", "daclType"]
     },
     {
         "URL": "/ers/config/endpointgroup?size=100",
-        "Name": "Endpoint Groups"
+        "Name": "Endpoint Groups",
+        "FilterableFields": ["name", "description", "systemDefined"]
     },
     {
         "URL": "/ers/config/networkdevice?size=100",
-        "Name": "Network Devices"
+        "Name": "Network Devices",
+        "FilterableFields": ["name", "description", "ipaddress", "modelName", "softwareVersion", "NetworkDeviceIPList", "NetworkDeviceGroupList"]
     },
     {
         "URL": "/ers/config/networkdevicegroup?size=100",
-        "Name": "Network Device Groups"
+        "Name": "Network Device Groups",
+        "FilterableFields": ["name", "description", "othername"]
     },
     {
         "URL": "/ers/config/node?size=100",
-        "Name": "Nodes"
+        "Name": "Nodes",
+        "FilterableFields": ["name", "description", "ipAddress", "hostname"]
     },
     {
         "URL": "/ers/config/portal?size=100",
-        "Name": "Portals"
+        "Name": "Portals",
+        "FilterableFields": ["name", "description", "portalType"]
     },
     {
         "URL": "/ers/config/sgt?size=100",
-        "Name": "SGTs"
+        "Name": "SGTs",
+        "FilterableFields": ["name", "description", "value"]
     },
     {
         "URL": "/ers/config/sgacl?size=100",
-        "Name": "SGACLs"
+        "Name": "SGACLs",
+        "FilterableFields": ["name", "description", "ipVersion", "aclcontent"]
     },
     {
         "URL": "/ers/config/selfregportal?size=100",
-        "Name": "Self-Reg Portals"
+        "Name": "Self-Reg Portals",
+        "FilterableFields": ["name", "description"]
     },
     {
         "URL": "/ers/config/sponsorgroup?size=100",
-        "Name": "Sponsor Groups"
+        "Name": "Sponsor Groups",
+        "FilterableFields": ["name", "description"]
     },
     {
         "URL": "/ers/config/sponsorportal?size=100",
-        "Name": "Sponsor Portals"
+        "Name": "Sponsor Portals",
+        "FilterableFields": ["name", "description"]
     },
     {
         "URL": "/ers/config/sponsoredguestportal?size=100",
-        "Name": "Sponsored Guest Portals"
+        "Name": "Sponsored Guest Portals",
+        "FilterableFields": ["name", "description"]
     },
     {
         "URL": "/api/v1/backup-restore/config/last-backup-status",
-        "Name": "Last Backup Status"
+        "Name": "Last Backup Status",
+        "FilterableFields": []
     },
     {
         "URL": "/api/v1/certs/certificate-signing-request",
-        "Name": "Certificate Signing Requests"
+        "Name": "Certificate Signing Requests",
+        "FilterableFields": ["commonName", "subjectOrganization", "keyType"]
     },
     {
         "URL": "/api/v1/certs/system-certificate/{self.no_https_url}",
-        "Name": "System Certificates"
+        "Name": "System Certificates",
+        "FilterableFields": ["friendlyName", "issuedBy", "expirationDate"]
     },
     {
         "URL": "/api/v1/certs/trusted-certificate",
-        "Name": "Trusted Certificates"
+        "Name": "Trusted Certificates",
+        "FilterableFields": ["friendlyName", "issuedBy", "trustForCertificateBasedAdminAuth"]
     },
     {
         "URL": "/api/v1/deployment/node",
-        "Name": "Deployment Nodes"
+        "Name": "Deployment Nodes",
+        "FilterableFields": ["hostname", "ipAddress", "roles", "status"]
     },
     {
         "URL": "/api/v1/deployment/pan-ha",
-        "Name": "Deployment PAN-HA"
+        "Name": "Deployment PAN-HA",
+        "FilterableFields": ["primaryHostname", "secondaryHostname", "status"]
     },
     {
         "URL": "/api/v1/node/{self.no_https_url}/interface",
-        "Name": "Node Interfaces"
+        "Name": "Node Interfaces",
+        "FilterableFields": ["name", "ipAddress", "macAddress", "enabled"]
     },
     {
         "URL": "/api/v1/profile/{self.no_https_url}",
-        "Name": "Profiles"
+        "Name": "Profiles",
+        "FilterableFields": ["name", "type"]
     },
     {
         "URL": "/api/v1/license/system/connection-type",
-        "Name": "License System Connection Types"
+        "Name": "License System Connection Types",
+        "FilterableFields": []
     },
     {
         "URL": "/api/v1/license/system/eval-license",
-        "Name": "Evaluation Licenses"
+        "Name": "Evaluation Licenses",
+        "FilterableFields": ["name", "status", "expiry"]
     },
     {
         "URL": "/api/v1/license/system/feature-to-tier-mapping",
-        "Name": "Feature to Tier Mappings"
+        "Name": "Feature to Tier Mappings",
+        "FilterableFields": []
     },
     {
         "URL": "/api/v1/license/system/register",
-        "Name": "License Registration"
+        "Name": "License Registration",
+        "FilterableFields": []
     },
     {
         "URL": "/api/v1/license/system/smart-state",
-        "Name": "Smart License State"
+        "Name": "Smart License State",
+        "FilterableFields": []
     },
     {
         "URL": "/api/v1/license/system/tier-state",
-        "Name": "License Tier State"
+        "Name": "License Tier State",
+        "FilterableFields": ["name", "status", "consumptionCount"]
     },
     {
         "URL": "/api/v1/patch",
-        "Name": "Patches"
+        "Name": "Patches",
+        "FilterableFields": ["patchVersion", "status", "installDate"]
     },
     {
         "URL": "/api/v1/hotpatch",
-        "Name": "Hotpatches"
+        "Name": "Hotpatches",
+        "FilterableFields": ["hotpatchName", "installDate"]
     },
     {
         "URL": "/api/v1/repository",
-        "Name": "Repositories"
+        "Name": "Repositories",
+        "FilterableFields": ["name", "protocol", "serverName"]
     },
     {
         "URL": "/api/v1/system-settings/proxy",
-        "Name": "Proxy Settings"
+        "Name": "Proxy Settings",
+        "FilterableFields": ["host", "port", "username"]
     },
     {
         "URL": "/api/v1/system-settings/telemetry/transport-gateway",
-        "Name": "Telemetry Transport Gateway Settings"
+        "Name": "Telemetry Transport Gateway Settings",
+        "FilterableFields": []
     },
     {
         "URL": "/api/v1/trustsec/sgacl/nbarapp/",
-        "Name": "TrustSec SGACL NBAR Apps"
+        "Name": "TrustSec SGACL NBAR Apps",
+        "FilterableFields": ["name", "description"]
     },
     {
         "URL": "/api/v1/policy/device-admin/command-sets",
-        "Name": "Device Admin Command Sets"
+        "Name": "Device Admin Command Sets",
+        "FilterableFields": ["name", "description"]
     },
     {
         "URL": "/api/v1/policy/device-admin/condition",
-        "Name": "Device Admin Conditions"
+        "Name": "Device Admin Conditions",
+        "FilterableFields": ["name", "description", "conditionType", "attributeName"]
     },
     {
         "URL": "/api/v1/policy/device-admin/dictionaries/authentication",
-        "Name": "Device Admin Authentication Dictionaries"
+        "Name": "Device Admin Authentication Dictionaries",
+        "FilterableFields": ["name", "description", "version"]
     },
     {
         "URL": "/api/v1/policy/device-admin/dictionaries/authorization",
-        "Name": "Device Admin Authorization Dictionaries"
+        "Name": "Device Admin Authorization Dictionaries",
+        "FilterableFields": ["name", "description", "version"]
     },
     {
         "URL": "/api/v1/policy/device-admin/dictionaries/policyset",
-        "Name": "Device Admin Policy Set Dictionaries"
+        "Name": "Device Admin Policy Set Dictionaries",
+        "FilterableFields": ["name", "description", "version"]
     },
     {
         "URL": "/api/v1/policy/device-admin/identity-stores",
-        "Name": "Device Admin Identity Stores"
+        "Name": "Device Admin Identity Stores",
+        "FilterableFields": ["name", "description"]
     },
     {
         "URL": "/api/v1/policy/device-admin/policy-set",
-        "Name": "Device Admin Policy Sets"
+        "Name": "Device Admin Policy Sets",
+        "FilterableFields": ["name", "description", "state", "isProxy"]
     },
     {
         "URL": "/api/v1/policy/device-admin/service-names",
-        "Name": "Device Admin Service Names"
+        "Name": "Device Admin Service Names",
+        "FilterableFields": ["name", "description"]
     },
     {
         "URL": "/api/v1/policy/device-admin/shell-profiles",
-        "Name": "Device Admin Shell Profiles"
+        "Name": "Device Admin Shell Profiles",
+        "FilterableFields": ["name", "description"]
     },
     {
         "URL": "/api/v1/policy/network-access/authorization-profiles",
-        "Name": "Network Access Authorization Profiles"
+        "Name": "Network Access Authorization Profiles",
+        "FilterableFields": ["name", "description", "accessType", "daclName"]
     },
     {
         "URL": "/api/v1/policy/network-access/condition",
-        "Name": "Network Access Conditions"
+        "Name": "Network Access Conditions",
+        "FilterableFields": ["name", "description", "conditionType", "attributeName"]
     },
     {
         "URL": "/api/v1/policy/network-access/condition/authentication",
-        "Name": "Network Access Authentication Conditions"
+        "Name": "Network Access Authentication Conditions",
+        "FilterableFields": ["name", "description", "conditionType", "attributeName"]
     },
     {
         "URL": "/api/v1/policy/network-access/condition/authorization",
-        "Name": "Network Access Authorization Conditions"
+        "Name": "Network Access Authorization Conditions",
+        "FilterableFields": ["name", "description", "conditionType", "attributeName"]
     },
     {
         "URL": "/api/v1/policy/network-access/condition/policyset",
-        "Name": "Network Access Policy Set Conditions"
+        "Name": "Network Access Policy Set Conditions",
+        "FilterableFields": ["name", "description", "conditionType", "attributeName"]
     },
     {
         "URL": "/api/v1/policy/network-access/dictionaries",
-        "Name": "Network Access Dictionaries"
+        "Name": "Network Access Dictionaries",
+        "FilterableFields": ["name", "description", "version"]
     },
     {
         "URL": "/api/v1/policy/network-access/dictionaries/authentication",
-        "Name": "Network Access Authentication Dictionaries"
+        "Name": "Network Access Authentication Dictionaries",
+        "FilterableFields": ["name", "description", "version"]
     },
     {
         "URL": "/api/v1/policy/network-access/dictionaries/authorization",
-        "Name": "Network Access Authorization Dictionaries"
+        "Name": "Network Access Authorization Dictionaries",
+        "FilterableFields": ["name", "description", "version"]
     },
     {
         "URL": "/api/v1/policy/network-access/dictionaries/policyset",
-        "Name": "Network Access Policy Set Dictionaries"
+        "Name": "Network Access Policy Set Dictionaries",
+        "FilterableFields": ["name", "description", "version"]
     },
     {
         "URL": "/api/v1/policy/network-access/identity-stores",
-        "Name": "Network Access Identity Stores"
+        "Name": "Network Access Identity Stores",
+        "FilterableFields": ["name", "description"]
     },
     {
         "URL": "/api/v1/policy/network-access/policy-set",
-        "Name": "Network Access Policy Sets"
+        "Name": "Network Access Policy Sets",
+        "FilterableFields": ["name", "description", "state", "isProxy"]
     },
     {
         "URL": "/api/v1/policy/network-access/security-groups",
-        "Name": "Network Access Security Groups"
+        "Name": "Network Access Security Groups",
+        "FilterableFields": ["name", "description", "value"]
     },
     {
         "URL": "/api/v1/policy/network-access/service-names",
-        "Name": "Network Access Service Names"
+        "Name": "Network Access Service Names",
+        "FilterableFields": ["name", "description"]
     },
     {
         "URL": "/admin/API/mnt/Session/ActiveCount",
-        "Name": "Active Session Count"
+        "Name": "Active Session Count",
+        "FilterableFields": []
     },
     {
         "URL": "/admin/API/mnt/Session/PostureCount",
-        "Name": "Posture Session Count"
+        "Name": "Posture Session Count",
+        "FilterableFields": []
     },
     {
         "URL": "/admin/API/mnt/Session/ProfilerCount",
-        "Name": "Profiler Session Count"
+        "Name": "Profiler Session Count",
+        "FilterableFields": []
     },
     {
         "URL": "/admin/API/mnt/Version",
-        "Name": "Version"
+        "Name": "Version",
+        "FilterableFields": []
     },
     {
         "URL": "/admin/API/mnt/FailureReasons",
-        "Name": "Failure Reasons"
-    }  
+        "Name": "Failure Reasons",
+        "FilterableFields": []
+    }
 ]

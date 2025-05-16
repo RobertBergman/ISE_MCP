@@ -1,25 +1,25 @@
-import sys
 import json
 import logging
-import asyncio
-import argparse
-import threading
-import time
-import requests
-from pydantic import BaseModel, Field, ValidationError
-from typing import Dict, List, Any, Optional
-from functools import partial
-from dotenv import load_dotenv
 import os
+import requests
+import asyncio
+from typing import Dict, Any, Optional
+from pydantic import BaseModel, Field
+from dotenv import load_dotenv
+from fastmcp import FastMCP
+from fastmcp.exceptions import ToolError
 
 load_dotenv()
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(threadName)s - %(name)s - %(levelname)s - %(message)s")
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("ISEMCPServer")
 
 ISE_BASE = os.getenv("ISE_BASE")
 USERNAME = os.getenv("USERNAME")
 PASSWORD = os.getenv("PASSWORD")
+
+if not ISE_BASE or not USERNAME or not PASSWORD:
+    logger.error("❌ Missing one or more required environment variables: ISE_BASE, USERNAME, PASSWORD")
 
 HEADERS = {
     "Accept": "application/json",
@@ -28,134 +28,133 @@ HEADERS = {
 
 # ------------------------------- Load URLs -------------------------------
 
-def load_urls(file_path='urls.json') -> List[Dict[str, str]]:
-    with open(file_path, 'r') as f:
-        return json.load(f)
+def load_urls(file_path='urls.json'):
+    try:
+        with open(file_path, 'r') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        logger.error(f"❌ URLS file not found at {file_path}. Cannot register tools.")
+        return []
+    except json.JSONDecodeError:
+        logger.error(f"❌ Error decoding JSON from {file_path}. Cannot register tools.")
+        return []
 
 URLS = load_urls()
 
-# ------------------------------- Tool Input Schemas -------------------------------
+# ------------------------------- FastMCP Server Setup -------------------------------
 
-class EmptyInput(BaseModel):
-    pass
+mcp = FastMCP(
+    name="ISE MCP Server",
+    instructions="Provides tools to fetch data from Cisco ISE. Tools may support filtering based on endpoint capabilities."
+)
+mcp.dependencies = [] # Explicitly add an empty list for dependencies
 
-# ------------------------------- Dynamic Tool Implementations -------------------------------
+# ------------------------------- Input Schemas for Tools -------------------------------
 
-def make_tool(url: str):
-    def tool_impl(_: Dict[str, Any]) -> Dict[str, Any]:
-        try:
-            full_url = f"{ISE_BASE}{url}"
-            logger.info(f"🚀 Fetching data from: {full_url}")
-            res = requests.get(full_url, headers=HEADERS, auth=(USERNAME, PASSWORD), verify=False)
-            res.raise_for_status()
-            return res.json()
-        except Exception as e:
-            logger.error(f"❌ API error: {e}", exc_info=True)
-            return {"status": "error", "error": str(e)}
+class FilterableToolInput(BaseModel):
+    filter_expression: Optional[str] = Field(
+        default=None,
+        description="Optional filter string for the API request (e.g., 'name.CONTAINS.somevalue')."
+    )
+    query_params: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Optional dictionary of additional query parameters (e.g., {'size': 10, 'page': 1})."
+    )
 
-    return tool_impl
+class NonFilterableToolInput(BaseModel):
+    query_params: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Optional dictionary of additional query parameters (e.g., {'size': 10, 'page': 1})."
+    )
 
-# ------------------------------- Tool Registry -------------------------------
+# ------------------------------- Dynamic Tool Registration -------------------------------
 
-TOOLS = {
-    entry["Name"].replace(" ", "_").lower(): {
-        "function": make_tool(entry["URL"]),
-        "description": f"Fetch data for {entry['Name']} from Cisco ISE.",
-        "input_model": EmptyInput,
-    } for entry in URLS
-}
+for entry in URLS:
+    tool_name = entry.get("Name", "").replace(" ", "_").lower()
+    api_url_path = entry.get("URL")
+    filterable_fields = entry.get("FilterableFields", [])
 
-# ------------------------------- JSON-RPC Core -------------------------------
+    if not tool_name or not api_url_path:
+        logger.warning(f"⚠️ Skipping entry due to missing 'Name' or 'URL': {entry}")
+        continue
 
-def discover_tools() -> List[Dict[str, Any]]:
-    return [
-        {
-            "name": name,
-            "description": tool["description"],
-            "parameters": {
-                "type": "object",
-                "properties": {},
-                "required": [],
-                "additionalProperties": False
-            }
-        } for name, tool in TOOLS.items()
-    ]
+    # Determine if the endpoint supports filtering
+    supports_filtering = bool(filterable_fields)
 
-def call_tool(tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
-    if tool_name not in TOOLS:
-        return {"error": {"code": -32601, "message": f"Tool not found: {tool_name}"}}
-    return TOOLS[tool_name]["function"](arguments)
+    # Define the tool function
+    def create_tool_function(current_api_url_path: str, InputModelType: type):
+        # The `params` argument now has a default factory, creating an instance of InputModelType if not provided.
+        def specific_tool_function(params: InputModelType = Field(default_factory=InputModelType)) -> dict:
+            base_url = f"{ISE_BASE}{current_api_url_path}"
+            params_for_request = {}
 
-async def process_request(req: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    req_id = req.get("id")
-    method = req.get("method")
-    params = req.get("params", {})
+            # Access filter_expression if the model supports it (i.e., if it's FilterableToolInput)
+            # and if params itself is not None (though default_factory should prevent params being None)
+            if hasattr(params, 'filter_expression') and params.filter_expression is not None:
+                params_for_request['filter'] = params.filter_expression
 
-    if method == "initialize":
-        return {
-            "jsonrpc": "2.0",
-            "id": req_id,
-            "result": {
-                "capabilities": {"tools": {"discover": True, "call": True}},
-                "serverInfo": {"name": "ISE MCP Server", "version": "1.0.0"},
-            },
-        }
+            # Access query_params (present in both models, but check if provided and params is not None)
+            if params and params.query_params is not None:
+                params_for_request.update(params.query_params)
 
-    if method in ("tools/discover", "tools/list"):
-        return {"jsonrpc": "2.0", "id": req_id, "result": discover_tools()}
-
-    if method == "tools/call":
-        tool_name = params.get("name")
-        args = params.get("arguments", {})
-        response = call_tool(tool_name, args)
-
-        if "error" in response:
-            return {"jsonrpc": "2.0", "id": req_id, "error": response["error"]}
-
-        return {"jsonrpc": "2.0", "id": req_id, "result": response}
-
-    return {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32601, "message": f"Unknown method: {method}"}}
-
-def send_response(resp: Dict[str, Any]):
-    sys.stdout.write(json.dumps(resp) + "\n")
-    sys.stdout.flush()
-
-def monitor_stdin():
-    while True:
-        try:
-            line = sys.stdin.readline()
-            if not line.strip():
-                time.sleep(0.1)
-                continue
             try:
-                request_data = json.loads(line)
-                response = asyncio.run(process_request(request_data))
-                if response:
-                    send_response(response)
-            except json.JSONDecodeError as e:
-                send_response({"jsonrpc": "2.0", "error": {"code": -32700, "message": str(e)}, "id": None})
-        except Exception as e:
-            logger.error(f"Unexpected error in STDIO loop: {e}", exc_info=True)
+                logger.info(f"🚀 Calling Cisco ISE API: {base_url} with params: {params_for_request}")
+                response = requests.get(
+                    base_url,
+                    headers=HEADERS,
+                    auth=(USERNAME, PASSWORD),
+                    verify=False,
+                    timeout=15,
+                    params=params_for_request
+                )
+                response.raise_for_status()
+                return response.json()
+            except requests.exceptions.HTTPError as http_err:
+                error_message = f"HTTP error occurred: {http_err.response.status_code} - {http_err.response.text}"
+                logger.error(f"❌ {error_message}")
+                raise ToolError(error_message) from http_err
+            except requests.exceptions.RequestException as req_err:
+                error_message = f"Request error occurred: {req_err}"
+                logger.error(f"❌ {error_message}")
+                raise ToolError(error_message) from req_err
+            except Exception as e:
+                error_message = f"An unexpected error occurred: {e}"
+                logger.error(f"❌ {error_message}")
+                raise ToolError(error_message) from e
+        return specific_tool_function
 
-async def run_server_oneshot():
-    input_data = sys.stdin.read().strip()
-    request = json.loads(input_data)
-    response = await process_request(request)
-    if response:
-        send_response(response)
+    InputModel = FilterableToolInput if supports_filtering else NonFilterableToolInput
+    tool_func_instance = create_tool_function(api_url_path, InputModel)
+
+    # Set tool name and description
+    tool_func_instance.__name__ = tool_name
+    description = f"Fetch data for {entry['Name']} from Cisco ISE (Endpoint: {api_url_path})."
+    if supports_filtering:
+        description += f" Supports filtering on fields: {', '.join(filterable_fields)}."
+    else:
+        description += " Does not support filtering."
+    tool_func_instance.__doc__ = description
+
+    # Register the tool. FastMCP will infer the schema from the function's type hints.
+    mcp.add_tool(tool_func_instance)
+    logger.info(f"✅ Registered tool: {tool_name} for URL: {api_url_path} with input model: {InputModel.__name__}")
 
 # ------------------------------- Entry Point -------------------------------
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--oneshot", action="store_true")
-    args = parser.parse_args()
-
-    if args.oneshot:
-        asyncio.run(run_server_oneshot())
+async def _main_async():
+    if not URLS:
+        logger.error("No tools were registered. Check urls.json and logs. Exiting.")
     else:
-        stdin_thread = threading.Thread(target=monitor_stdin, daemon=True)
-        stdin_thread.start()
-        while stdin_thread.is_alive():
-            time.sleep(0.5)
-        
+        try:
+            # get_tools() is async according to documentation examples
+            tools_dict = await mcp.get_tools()
+            num_tools = len(tools_dict)
+            logger.info(f"🚀 Starting ISE FastMCP Server with {num_tools} tools...")
+        except Exception as e:
+            logger.error(f"Failed to get tool count: {e}. Starting server anyway.")
+            # Fallback message if getting tool count fails
+            logger.info(f"🚀 Starting ISE FastMCP Server...")
+        await mcp.run_async() # Use run_async in async contexts
+
+if __name__ == "__main__":
+    asyncio.run(_main_async())
