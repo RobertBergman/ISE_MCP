@@ -133,4 +133,3 @@ cython_debug/
 
 # Custom ignores
 .clinerules/
-memory-bank/
