@@ -13,6 +13,7 @@ COPY main.py .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir requests pydantic
+RUN pip install python-dotenv
 
 # Ensure logs appear in real time
 ENV PYTHONUNBUFFERED=1
