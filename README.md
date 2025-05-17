@@ -12,6 +12,24 @@ The ISE MCP Server is a Model Context Protocol (MCP) server designed to dynamica
 
 ## Setup
 
+## Server 
+{
+  "mcpServers": {
+    "ise": {
+      "command": "python",
+      "args": [
+        "ise_mcp_server.py",
+        "--oneshot"
+      ],
+      "env": {
+        "ISE_BASE": "https://devnetsandboxise.cisco.com",
+        "USERNAME": "readonly",
+        "PASSWORD": "ISEisC00L"
+      }
+    }
+  }
+}
+
 ### Requirements
 
 - Python 3.8 or higher
