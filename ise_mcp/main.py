@@ -39,7 +39,7 @@ def load_urls(file_path='urls.json'):
         logger.error(f"❌ Error decoding JSON from {file_path}. Cannot register tools.")
         return []
 
-URLS = load_urls()
+URLS = load_urls(os.getenv("URLS_PATH", "urls.json"))
 
 # ------------------------------- FastMCP Server Setup -------------------------------
 
