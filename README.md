@@ -1,139 +1,139 @@
-# ISE MCP Server (using FastMCP)
+# Cisco ISE MCP Server
 
-## Overview
+This project provides a Model Context Protocol (MCP) server for interacting with a Cisco Identity Services Engine (ISE) instance. It is built using the `fastmcp` Python library and dynamically generates MCP tools based on a configurable list of Cisco ISE API endpoints.
 
-The ISE MCP Server is a [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server built with the Python [`fastmcp`](https://gofastmcp.com/) library. It dynamically exposes Cisco Identity Services Engine (ISE) API endpoints as structured, discoverable MCP tools. This server allows clients to interact with Cisco ISE REST APIs in a standardized way, offering features like dynamic tool generation and API response filtering.
+## Key Features
 
-## Features
+- **Dynamic Tool Generation**: MCP tools are automatically created based on API endpoint definitions in `src/cisco/ISE/ise_mcp_server/urls.json`.
+- **API Filtering**: Supports filtering of API results for endpoints that allow it. Filter expressions and query parameters can be passed to the tools.
+- **Asynchronous Operations**: Utilizes `httpx.AsyncClient` for non-blocking API calls to Cisco ISE.
+- **`fastmcp` Based**: Leverages the `fastmcp` library for robust and efficient MCP server implementation.
+- **Configurable SSL Verification**: SSL certificate verification for ISE API calls can be configured via environment variables.
 
--   **Dynamic Tool Generation:** MCP tools are automatically created based on entries in the `ise_mcp/urls.json` configuration file.
--   **FastMCP Integration:** Leverages the `fastmcp` library for robust MCP server implementation, including schema generation and request handling.
--   **Asynchronous API Calls:** Uses `httpx.AsyncClient` for non-blocking communication with Cisco ISE.
--   **API Filtering:** Supports filtering of Cisco ISE API results through `filter_expression` and `query_params` arguments in each tool.
--   **Environment-Driven Configuration:** Cisco ISE connection details (base URL, username, password) and SSL verification settings (`ISE_VERIFY_SSL`) are configured via a `.env` file.
--   **Detailed Docstrings:** Dynamically generated tools include comprehensive docstrings explaining their purpose, the ISE API endpoint they target, and how to use filtering parameters.
--   **Standardized Interaction:** Adheres to the Model Context Protocol, allowing interaction via any MCP-compatible client.
--   **Streamable HTTP Transport:** Configured to use `streamable-http` transport by default for web-based access.
+## Project Structure
 
-## Setup
+- `src/cisco/ISE/ise_mcp_server/`: Contains the core server logic.
+  - `server.py`: The main FastMCP server application.
+  - `urls.json`: Defines the Cisco ISE API endpoints to be exposed as MCP tools.
+- `src/cisco/ISE/Dockerfile`: Dockerfile for containerizing the MCP server.
+- `memory-bank/`: Contains project documentation and context for Cline (AI Software Engineer).
 
-### Requirements
+## Getting Started
 
--   Python 3.9 or higher.
--   Required Python packages are listed in `ise_mcp/requirements.txt`. Install them using:
+### Prerequisites
+
+- Python 3.8+
+- Access to a Cisco ISE instance
+- Docker (optional, for containerized deployment)
+
+### Installation
+
+1.  **Clone the repository:**
     ```bash
-    pip install -r ise_mcp/requirements.txt
+    git clone <repository-url>
+    cd <repository-directory>
     ```
-    Or, if using `uv`:
+
+2.  **Install dependencies:**
+    It's recommended to use a virtual environment.
     ```bash
-    uv pip install -r ise_mcp/requirements.txt
+    python -m venv .venv
+    source .venv/bin/activate  # On Windows use `.venv\Scripts\activate`
+    pip install -r src/cisco/ISE/requirements.txt
     ```
-    Key dependencies include `fastmcp`, `httpx`, `pydantic`, and `python-dotenv`. (Ensure `requirements.txt` reflects `httpx` instead of `requests`).
 
 ### Configuration
 
-1.  **Environment Variables:**
-    Create a `.env` file in the `ise_mcp` directory (i.e., `ise_mcp/.env`) with your Cisco ISE API credentials and base URL:
-    ```env
-    ISE_BASE="https://your-ise-instance.example.com"
-    USERNAME="your-ise-api-username"
-    PASSWORD="your-ise-api-password"
-    # Optional: Controls SSL certificate verification for ISE API calls.
-    # Default is true. Set to "false" to disable (insecure).
-    # Or provide a path to a CA bundle file, e.g., "/path/to/your/ca.pem".
-    ISE_VERIFY_SSL="true"
+The server requires environment variables to connect to your Cisco ISE instance and for other configurations. Create a `.env` file in the `src/cisco/ISE/` directory with the following content:
+
+```env
+ISE_BASE_URL=https://your-ise-instance.com
+ISE_USERNAME=your_ise_username
+ISE_PASSWORD=your_ise_password
+ISE_VERIFY_SSL=true  # Set to false to disable SSL verification (not recommended for production)
+# For FastMCP server running in HTTP mode
+FASTMCP_SERVER_TRANSPORT=streamable-http # or sse
+FASTMCP_SERVER_HOST=0.0.0.0
+FASTMCP_SERVER_PORT=8000
+```
+
+Replace the placeholder values with your actual Cisco ISE details.
+
+### Running the Server
+
+You can run the server directly using Python:
+
+```bash
+python src/cisco/ISE/ise_mcp_server/server.py
+```
+
+Alternatively, you can use the `fastmcp` CLI:
+
+```bash
+fastmcp run src/cisco/ISE/ise_mcp_server/server.py
+```
+
+The server will start, and by default (if `FASTMCP_SERVER_TRANSPORT` is `streamable-http`), it will be accessible at `http://<FASTMCP_SERVER_HOST>:<FASTMCP_SERVER_PORT>/mcp`.
+
+### Docker Deployment
+
+A Dockerfile is provided for containerized deployment:
+
+1.  **Build the Docker image:**
+    ```bash
+    docker build -t ise-mcp-server -f src/cisco/ISE/Dockerfile src/cisco/ISE/
     ```
 
-2.  **URL Configuration (`urls.json`):**
-    Ensure the `ise_mcp/urls.json` file (located in the same directory as `ise_mcp.py`) is present and structured correctly. This file defines the ISE API endpoints that will be exposed as MCP tools.
-    ```json
-    [
-      {
-        "URL": "/ers/config/endpoint",
-        "Name": "Endpoints",
-        "FilterableFields": ["mac", "name", "description", "identityGroupName"]
-      },
-      {
-        "URL": "/ers/config/identitygroup",
-        "Name": "Identity Groups",
-        "FilterableFields": ["name", "description"]
-      }
-      // ... more endpoints
-    ]
+2.  **Run the Docker container:**
+    Make sure to pass the environment variables, for example by using an env-file.
+    ```bash
+    docker run -p 8000:8000 --env-file src/cisco/ISE/.env ise-mcp-server
     ```
-    -   `URL`: The relative path of the Cisco ISE API endpoint.
-    -   `Name`: A human-readable name used to derive the MCP tool name (e.g., "Endpoints" becomes the tool `endpoints`).
-    -   `FilterableFields`: An array of strings listing known fields that can be used with the `filter_expression` for this endpoint. This list is user-maintained and crucial for effective filtering.
+    This will map port 8000 of the container to port 8000 on your host.
 
-## Running the Server
+## Defining Tools (`urls.json`)
 
-The server is implemented in `ise_mcp.py`.
+The MCP tools are dynamically generated from the `src/cisco/ISE/ise_mcp_server/urls.json` file. Each entry in this JSON file defines an API endpoint that will be turned into an MCP tool.
 
-### Standard Execution (Streamable HTTP)
-
-To run the server directly using Python:
-```bash
-python ise_mcp.py
-```
-By default, this will start the server using `streamable-http` transport, typically available at `http://127.0.0.1:8000/mcp` (the exact URL and port can be configured in `ise_mcp.py`).
-
-### Development and Testing with MCP Inspector
-
-For development and testing, you can use the `fastmcp dev` command with the MCP Inspector. This provides a UI to interact with your MCP server.
-```bash
-python -m fastmcp dev ise_mcp.py --with httpx --with pydantic --with python-dotenv
-```
-After running this command, the MCP Inspector will launch.
--   **For STDIO testing with Inspector:**
-    1.  Select "STDIO" as the transport type in the Inspector.
-    2.  Set the command to run the server as `python ise_mcp.py`.
-    3.  Connect to the server.
--   **For HTTP testing with Inspector:**
-    1.  Run `python ise_mcp.py` in a separate terminal to start the server.
-    2.  In the MCP Inspector, select "HTTP" or "SSE" (if Streamable HTTP is used, "HTTP" should work for basic interaction, or use a client that fully supports Streamable HTTP).
-    3.  Set the URL to `http://127.0.0.1:8000/mcp` (or your configured endpoint).
-    4.  Connect to the server.
-
-## Interacting with the Server
-
-Once running, the ISE MCP Server can be accessed using any MCP-compatible client (e.g., MCP Inspector).
-
-### Tool Discovery
-
-Clients can discover available tools. Each tool corresponds to an entry in `urls.json`. Tool names are derived from the `Name` field (e.g., "Identity Groups" becomes `identity_groups`).
-
-### Calling a Tool
-
-Tools are called with a single optional argument, `params`, which is an instance of a Pydantic model (`FilterableToolInput` or `NonFilterableToolInput`).
-
-**Example: Calling the `endpoints` tool without filters:**
-An MCP client would typically allow calling the tool without explicit arguments if the tool's input model uses `default_factory`.
-
-**Example: Calling the `endpoints` tool with filters:**
-The arguments would be structured according to the Pydantic model. For a tool generated from an endpoint with `FilterableFields`:
+Example entry in `urls.json`:
 ```json
-// Example arguments for a tool call (client-dependent format)
 {
-  "params": {
-    "filter_expression": "name.CONTAINS.mydevice",
-    "query_params": {
-      "size": 10,
-      "page": 1
-    }
+  "endpoints": {
+    "tool_name": "endpoints",
+    "path": "/ers/config/endpoint?size=100",
+    "description": "Fetch data for Endpoints from Cisco ISE",
+    "filterable_fields": ["name", "description", "mac", "groupId", "staticGroupAssignment", "identityStore", "portalUser", "mdmServerName", "deviceType", "operatingSystem"]
   }
+  // ... other endpoints
 }
 ```
--   `filter_expression` (string, optional): Specifies filters in the format `fieldName.OPERATION.value` (e.g., `mac.EQUALS.AA:BB:CC:DD:EE:FF`). Refer to the tool's docstring for available `FilterableFields` and supported ISE operations (e.g., CONTAINS, EQUALS, STARTSWITH).
--   `query_params` (dict, optional): Allows specifying other arbitrary query parameters (e.g., `{"size": 100, "page": 2}`). These are passed directly to the ISE API.
 
-If an endpoint in `urls.json` has an empty `FilterableFields` array, the corresponding tool will only accept `query_params`.
+- `tool_name`: The name of the MCP tool that will be generated.
+- `path`: The API endpoint path on the Cisco ISE server.
+- `description`: A description for the generated MCP tool.
+- `filterable_fields`: An array of strings listing the fields that can be used for filtering via the tool's `filter_expression` parameter.
 
-Refer to the dynamically generated docstring of each tool for specific details on its endpoint and available filterable fields.
+## Using the Tools
 
-## Logging
+Once the server is running, MCP clients can connect to it and use the generated tools. Each tool will have a docstring providing its description and information on available filterable fields.
 
-The server uses the standard Python `logging` module, configured by `fastmcp`. Log messages related to server operations and API interactions will be output to the console.
+Example of calling a tool (conceptual):
+```python
+# Assuming 'client' is an MCP client connected to the server
+# Fetch all endpoints
+all_endpoints = await client.call_tool("endpoints")
+
+# Fetch endpoints filtering by name
+filtered_endpoints = await client.call_tool(
+    "endpoints",
+    {"params": {"filter_expression": "name.CONTAINS.some-device-name"}}
+)
+```
+
+## Contributing
+
+Contributions are welcome! Please refer to the project's contribution guidelines (if available) or open an issue to discuss potential changes.
 
 ## License
 
-Apache 2.0 License
+This project is licensed under the [MIT License](LICENSE).
