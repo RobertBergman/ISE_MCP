@@ -8,10 +8,12 @@ The ISE MCP Server is a [Model Context Protocol (MCP)](https://modelcontextproto
 
 -   **Dynamic Tool Generation:** MCP tools are automatically created based on entries in the `ise_mcp/urls.json` configuration file.
 -   **FastMCP Integration:** Leverages the `fastmcp` library for robust MCP server implementation, including schema generation and request handling.
+-   **Asynchronous API Calls:** Uses `httpx.AsyncClient` for non-blocking communication with Cisco ISE.
 -   **API Filtering:** Supports filtering of Cisco ISE API results through `filter_expression` and `query_params` arguments in each tool.
--   **Environment-Driven Configuration:** Cisco ISE connection details (base URL, username, password) are configured via a `.env` file.
+-   **Environment-Driven Configuration:** Cisco ISE connection details (base URL, username, password) and SSL verification settings (`ISE_VERIFY_SSL`) are configured via a `.env` file.
 -   **Detailed Docstrings:** Dynamically generated tools include comprehensive docstrings explaining their purpose, the ISE API endpoint they target, and how to use filtering parameters.
 -   **Standardized Interaction:** Adheres to the Model Context Protocol, allowing interaction via any MCP-compatible client.
+-   **Streamable HTTP Transport:** Configured to use `streamable-http` transport by default for web-based access.
 
 ## Setup
 
@@ -26,7 +28,7 @@ The ISE MCP Server is a [Model Context Protocol (MCP)](https://modelcontextproto
     ```bash
     uv pip install -r ise_mcp/requirements.txt
     ```
-    Key dependencies include `fastmcp`, `requests`, `pydantic`, and `python-dotenv`.
+    Key dependencies include `fastmcp`, `httpx`, `pydantic`, and `python-dotenv`. (Ensure `requirements.txt` reflects `httpx` instead of `requests`).
 
 ### Configuration
 
@@ -36,12 +38,14 @@ The ISE MCP Server is a [Model Context Protocol (MCP)](https://modelcontextproto
     ISE_BASE="https://your-ise-instance.example.com"
     USERNAME="your-ise-api-username"
     PASSWORD="your-ise-api-password"
-    # Optional: For disabling SSL verification (use with caution)
-    # ISE_VERIFY_SSL="false"
+    # Optional: Controls SSL certificate verification for ISE API calls.
+    # Default is true. Set to "false" to disable (insecure).
+    # Or provide a path to a CA bundle file, e.g., "/path/to/your/ca.pem".
+    ISE_VERIFY_SSL="true"
     ```
 
 2.  **URL Configuration (`urls.json`):**
-    Ensure the `ise_mcp/urls.json` file is present and structured correctly. This file defines the ISE API endpoints that will be exposed as MCP tools.
+    Ensure the `ise_mcp/urls.json` file (located in the same directory as `ise_mcp.py`) is present and structured correctly. This file defines the ISE API endpoints that will be exposed as MCP tools.
     ```json
     [
       {
@@ -63,25 +67,32 @@ The ISE MCP Server is a [Model Context Protocol (MCP)](https://modelcontextproto
 
 ## Running the Server
 
-The server is implemented in `ise_mcp/main.py`.
+The server is implemented in `ise_mcp.py`.
 
-### Standard Execution (Stdio)
+### Standard Execution (Streamable HTTP)
 
-To run the server directly using Python (it will use STDIO transport by default):
+To run the server directly using Python:
 ```bash
-python ise_mcp/main.py
+python ise_mcp.py
 ```
+By default, this will start the server using `streamable-http` transport, typically available at `http://127.0.0.1:8000/mcp` (the exact URL and port can be configured in `ise_mcp.py`).
 
 ### Development and Testing with MCP Inspector
 
-For development and testing, it's recommended to use the `fastmcp dev` command with the MCP Inspector. This provides a UI to interact with your MCP server.
+For development and testing, you can use the `fastmcp dev` command with the MCP Inspector. This provides a UI to interact with your MCP server.
 ```bash
-python -m fastmcp dev ise_mcp/main.py --with requests --with pydantic --with python-dotenv
+python -m fastmcp dev ise_mcp.py --with httpx --with pydantic --with python-dotenv
 ```
-After running this command, the MCP Inspector will launch. You may need to:
-1. Select "STDIO" as the transport type in the Inspector.
-2. Set the command to run the server as `python ise_mcp/main.py`.
-3. Connect to the server.
+After running this command, the MCP Inspector will launch.
+-   **For STDIO testing with Inspector:**
+    1.  Select "STDIO" as the transport type in the Inspector.
+    2.  Set the command to run the server as `python ise_mcp.py`.
+    3.  Connect to the server.
+-   **For HTTP testing with Inspector:**
+    1.  Run `python ise_mcp.py` in a separate terminal to start the server.
+    2.  In the MCP Inspector, select "HTTP" or "SSE" (if Streamable HTTP is used, "HTTP" should work for basic interaction, or use a client that fully supports Streamable HTTP).
+    3.  Set the URL to `http://127.0.0.1:8000/mcp` (or your configured endpoint).
+    4.  Connect to the server.
 
 ## Interacting with the Server
 

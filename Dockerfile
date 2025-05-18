@@ -15,11 +15,12 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy source file
-COPY main.py .
+COPY ise_mcp.py .
 COPY urls.json .
+COPY .env .
 
 # Ensure logs appear in real time
 ENV PYTHONUNBUFFERED=1
 
 # Run the server in stdio mode by default
-ENTRYPOINT ["fastmcp", "run", "main.py"]
+ENTRYPOINT ["fastmcp", "run", "ise_mcp.py"]

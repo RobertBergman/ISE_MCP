@@ -132,5 +132,4 @@ cython_debug/
 .vscode/
 
 # Custom ignores
-.clinerules/
-memory-bank
+.clinerules

@@ -13,13 +13,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Filtering capabilities (`filter_expression`, `query_params`) for dynamically generated tools.
 - Pydantic models (`FilterableToolInput`, `NonFilterableToolInput`) for tool arguments, with `default_factory` to handle calls without explicit parameters.
 - Dynamic docstring generation for tools, including filtering information.
-- Asynchronous main execution loop (`_main_async`) using `asyncio` and `mcp.run_async()`.
+- Asynchronous main execution loop (`_main_async`) using `asyncio` and `mcp.run_async(transport="streamable-http")`.
 - Explicit `mcp.dependencies = []` for compatibility with `fastmcp dev`.
 - Memory bank files (`projectbrief.md`, `productContext.md`, `activeContext.md`, `systemPatterns.md`, `techContext.md`, `progress.md`) to document project state and evolution.
+- Robust SSL verification handling for ISE API calls, configurable via `ISE_VERIFY_SSL` environment variable.
+- Use of `sys.exit(1)` for graceful termination if critical environment variables are missing.
+- Use of `pathlib` for robust `urls.json` path resolution.
 
 ### Changed
 - Replaced custom JSON-RPC server with `fastmcp`.
+- Replaced `requests` library with `httpx` for asynchronous HTTP calls to Cisco ISE.
 - Refactored tool function signatures to use an optional Pydantic model instance for parameters.
+- Default server transport changed from `stdio` to `streamable-http`.
 
 ### Fixed
 - Resolved `TypeError` for `FastMCP.add_tool()` related to `input_schema`.
@@ -28,7 +33,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Handled `TypeError` in `fastmcp dev` by setting `mcp.dependencies`.
 - Resolved `zsh: command not found: fastmcp` by advising `python -m fastmcp dev`.
 - Fixed `ValidationError` for missing `params` argument in tools when called from MCP Inspector by using `default_factory` for Pydantic model arguments.
-- Corrected indentation errors in `ise_mcp/main.py`.
+- Corrected indentation errors in `ise_mcp.py`.
+- Improved error handling for API calls by specifically catching `httpx.HTTPStatusError` and `httpx.RequestError`.
 
 ### Removed
 - Custom JSON-RPC server implementation.
+- `requests` library dependency (replaced by `httpx`).
