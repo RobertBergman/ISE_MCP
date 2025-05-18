@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Updated project directory structure:
+  - Main server script moved from `ise_mcp.py` to `src/cisco/ISE/ise_mcp_server/server.py`.
+  - `urls.json` moved to `src/cisco/ISE/ise_mcp_server/urls.json`.
+- Updated `Dockerfile` `COPY` and `ENTRYPOINT` instructions to reflect new paths.
+- Updated all memory bank files (`projectbrief.md`, `productContext.md`, `activeContext.md`, `systemPatterns.md`, `techContext.md`, `progress.md`) and `src/cisco/ISE/README.md` with corrected file paths and commands.
+
 ### Added
 - Initial migration to `fastmcp` library for MCP server implementation.
 - Dynamic tool generation from `urls.json` for Cisco ISE API endpoints.
@@ -39,3 +46,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 - Custom JSON-RPC server implementation.
 - `requests` library dependency (replaced by `httpx`).
+
+## [0.2.0] - 2025-05-18
+
+### Added
+- Docker-based setup for running the ISE MCP server, primarily for Claude Desktop integration.
+  - `Dockerfile` modified to use `stdio` transport and remove `.env` copying.
+  - `claude_desktop_config.json` updated to use `docker run -i --rm --env-file=.env ise-mcp:latest` for STDIO communication.
+  - `ISE_MCP.md` tool definition created for Docker Desktop AI Tools.
+- Documentation (`README.md`, memory bank files) updated to reflect the new Docker-based workflow.
+
+### Changed
+- Default recommended method for running with Claude Desktop is now via Docker, not direct Python execution or `docker-compose`.
+- `docker-compose.yml` is now positioned as an alternative for local testing, not the primary integration method for Claude Desktop.

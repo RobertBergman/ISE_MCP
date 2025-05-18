@@ -32,10 +32,10 @@
 
 ## Current Status
 
-- The server code in `ise_mcp.py` has undergone a full code review and incorporates `httpx` for asynchronous API calls, improved SSL verification, and robust environment variable handling.
+- The server code in `src/cisco/ISE/ise_mcp_server/server.py` has undergone a full code review and incorporates `httpx` for asynchronous API calls, improved SSL verification, and robust environment variable handling.
 - The server is configured to use `streamable-http` transport.
-- The primary blocker for full testing and usability is the population of `FilterableFields` in `urls.json`.
-- The server is ready for testing with the MCP Inspector. For HTTP transport testing, run `python ise_mcp.py` and connect the Inspector to the HTTP endpoint. For STDIO testing via `fastmcp dev`, use: `python -m fastmcp dev ise_mcp.py --with httpx --with pydantic --with python-dotenv`.
+- The primary blocker for full testing and usability is the population of `FilterableFields` in `src/cisco/ISE/ise_mcp_server/urls.json`.
+- The server is ready for testing with the MCP Inspector. For HTTP transport testing, run `python src/cisco/ISE/ise_mcp_server/server.py` and connect the Inspector to the HTTP endpoint. For STDIO testing via `fastmcp dev`, use: `python -m fastmcp dev src/cisco/ISE/ise_mcp_server/server.py --with httpx --with pydantic --with python-dotenv`.
 
 ## Known Issues
 
@@ -59,3 +59,8 @@
     *   Replaced `requests` with `httpx` for asynchronous API calls.
     *   Improved SSL verification handling and environment variable checks (including `sys.exit`).
     *   Adopted `pathlib` for loading `urls.json`.
+7.  **Dockerization for Claude Desktop:**
+    *   Modified `Dockerfile` to use `stdio` transport and remove `.env` copying.
+    *   Updated `docker-compose.yml` to remove `command` and `version` directives.
+    *   Updated Claude Desktop configuration (`claude_desktop_config.json`) to use `docker run -i --rm --env-file=.env ise-mcp:latest` for STDIO communication, ensuring `.env` variables are passed correctly without being part of the image.
+    *   Created `ISE_MCP.md` tool definition for Docker Desktop AI Tools.

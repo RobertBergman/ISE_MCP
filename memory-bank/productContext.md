@@ -22,8 +22,8 @@ The `ise_mcp` server operates as follows:
 6.  Tools accept optional parameters for filtering:
     *   `filter_expression` (string): Allows specifying filters in the format `fieldName.OPERATION.value` (e.g., `name.CONTAINS.mydevice`). This is passed as the `filter` query parameter to the ISE API.
     *   `query_params` (dictionary): Allows specifying other arbitrary query parameters (e.g., `{'size': 10, 'page': 1}`). These are merged with the API request.
-7.  The server generates detailed docstrings for each tool, explaining its purpose, the API endpoint it calls, how to use the filtering parameters, and listing known filterable fields (if defined in `urls.json`).
-8.  The server communicates with MCP clients via `streamable-http` transport by default (e.g., `http://127.0.0.1:8000/mcp`), as configured in `ise_mcp.py`.
+7.  The server generates detailed docstrings for each tool, explaining its purpose, the API endpoint it calls, how to use the filtering parameters, and listing known filterable fields (if defined in `src/cisco/ISE/ise_mcp_server/urls.json`).
+8.  The server communicates with MCP clients via `streamable-http` transport by default (e.g., `http://127.0.0.1:8000/mcp`), as configured in `src/cisco/ISE/ise_mcp_server/server.py`.
 9.  SSL verification for connections to Cisco ISE can be configured via the `ISE_VERIFY_SSL` environment variable (true, false, or path to CA bundle).
 10. The server uses `httpx.AsyncClient` for making asynchronous API calls to Cisco ISE.
 
