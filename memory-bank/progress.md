@@ -77,14 +77,18 @@ Based on our research, we've identified several key enhancements:
   - Added streaming pagination via get_stream() method
   - Improved error handling to continue with partial results on page failures
 
-### 3. Rate Limiting (Planned)
-- **Description:** Implement rate limiting to prevent overwhelming the Cisco ISE API
-- **Implementation Plan:**
-  - Use `aiolimiter` library for async-compatible rate limiting
-  - Implement token bucket algorithm
-  - Add global rate limit with category-based limits
-  - Integrate with caching to only count actual API calls
-  - Add configurable limits
+### 3. Rate Limiting (Implemented)
+- **Description:** Implemented rate limiting to prevent overwhelming the Cisco ISE API
+- **Implementation Details:**
+  - Used `aiolimiter` library for async-compatible rate limiting
+  - Implemented token bucket algorithm with configurable rates
+  - Added global rate limit with category-based limits (auth, device, policy)
+  - Created URL pattern to category mapping for classification
+  - Integrated exponential backoff for rate limit retry handling
+  - Added two MCP tools:
+    - `rate_limit_info`: Gets information about current rate limiting state
+    - `rate_limit_config`: Configures rate limiting settings (enabled/disabled, global limit, category limits)
+  - Added safeguards for 429 (Too Many Requests) responses
 
 ### 4. Metrics Collection (Planned)
 - **Description:** Add metrics collection for monitoring and troubleshooting
@@ -107,15 +111,19 @@ Based on our research, we've identified several key enhancements:
 ## Current Status
 
 - The codebase has been completely restructured into a modular package with clear separation of concerns.
-- API response caching and automatic pagination handling have been fully implemented.
+- The project structure has been simplified by removing the cisco/ISE directory layer, moving ise_mcp_server directly under src/.
+- API response caching, automatic pagination handling, and rate limiting have been fully implemented.
 - The server can be run in multiple ways:
-  - As a module: `python -m ise_mcp_server`
+  - As a module: `python -m src.ise_mcp_server`
   - As an installed package: `ise-mcp-server`
   - With Docker: `docker run -i --rm --env-file=.env ise-mcp:latest`
-  - With uv: `uv --directory /path/to/project run fastmcp run ise_mcp_server.__main__ --transport stdio`
 - Command-line options allow customization of host, port, and transport.
+- Fixed Docker startup issues with stdio transport by conditionally passing parameters based on transport type.
+- Updated setup.py to use src-layout pattern for Python packaging.
 - The code structure follows best practices for software design, making it more maintainable and extensible.
-- Additional tools are available for cache management: `cache_clear`, `cache_info`, and `cache_config`.
+- Additional management tools are available:
+  - Cache management: `cache_clear`, `cache_info`, `cache_config`
+  - Rate limiting management: `rate_limit_info`, `rate_limit_config`
 
 ## Known Issues
 
@@ -164,3 +172,16 @@ Based on our research, we've identified several key enhancements:
     *   Verified auto-pagination implementation for large result sets.
     *   Improved cache key generation for efficiency.
     *   Added option to bypass cache and control pagination behavior.
+11. **Rate Limiting Implementation:**
+    *   Implemented rate limiting with `aiolimiter` using token bucket algorithm.
+    *   Added global and category-based rate limits for different endpoint types.
+    *   Created rate limit management tools for configuration and monitoring.
+    *   Integrated exponential backoff for handling rate limit violations.
+    *   Added explicit handling for HTTP 429 responses.
+12. **Project Structure Simplification:**
+    *   Removed the `cisco/ISE` directory layer, moving `ise_mcp_server` directly under `src/`.
+    *   Updated `setup.py` to use the src-layout pattern with `find_packages(where="src")`.
+    *   Fixed Docker build process to properly handle the src-layout structure.
+    *   Updated `Dockerfile` to use Python module directly (`python -m src.ise_mcp_server`).
+    *   Fixed Docker startup issues with stdio transport.
+    *   Updated all documentation to reflect the new structure.
