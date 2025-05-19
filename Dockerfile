@@ -14,12 +14,20 @@ COPY requirements.txt .
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy source file
-COPY ise_mcp_server .
+# Create src directory structure
+RUN mkdir -p /app/src
 
+# Copy the entire package
+COPY src/ise_mcp_server /app/src/ise_mcp_server
+
+# Make the package installable
+COPY setup.py .
+
+# Install the package
+RUN pip install -e .
 
 # Ensure logs appear in real time
 ENV PYTHONUNBUFFERED=1
 
 # Run the server in stdio mode for Docker Desktop AI Tools
-ENTRYPOINT ["fastmcp", "run", "server.py", "--transport", "stdio"]
+ENTRYPOINT ["python", "-m", "src.ise_mcp_server", "--transport", "stdio"]

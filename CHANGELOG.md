@@ -9,10 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Updated project directory structure:
-  - Main server script moved from `ise_mcp.py` to `src/cisco/ISE/ise_mcp_server/server.py`.
-  - `urls.json` moved to `src/cisco/ISE/ise_mcp_server/urls.json`.
+  - Main server script moved from `ise_mcp.py` to `src/ise_mcp_server/server.py`.
+  - `urls.json` moved to `src/ise_mcp_server/config/urls.json`.
+  - Removed the `cisco/ISE` directory level from the path structure.
+  - Implemented src-layout for Python package organization.
 - Updated `Dockerfile` `COPY` and `ENTRYPOINT` instructions to reflect new paths.
-- Updated all memory bank files (`projectbrief.md`, `productContext.md`, `activeContext.md`, `systemPatterns.md`, `techContext.md`, `progress.md`) and `src/cisco/ISE/README.md` with corrected file paths and commands.
+- Updated all memory bank files (`projectbrief.md`, `productContext.md`, `activeContext.md`, `systemPatterns.md`, `techContext.md`, `progress.md`) with corrected file paths and commands.
 
 ### Added
 - Initial migration to `fastmcp` library for MCP server implementation.
@@ -26,12 +28,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Robust SSL verification handling for ISE API calls, configurable via `ISE_VERIFY_SSL` environment variable.
 - Use of `sys.exit(1)` for graceful termination if critical environment variables are missing.
 - Use of `pathlib` for robust `urls.json` path resolution.
+- Rate limiting models and functionality to prevent overwhelming Cisco ISE API.
 
 ### Changed
 - Replaced custom JSON-RPC server with `fastmcp`.
 - Replaced `requests` library with `httpx` for asynchronous HTTP calls to Cisco ISE.
 - Refactored tool function signatures to use an optional Pydantic model instance for parameters.
 - Default server transport changed from `stdio` to `streamable-http`.
+- Updated Docker ENTRYPOINT to use Python module directly instead of fastmcp CLI.
+- Improved setup.py to use src-layout package structure.
 
 ### Fixed
 - Resolved `TypeError` for `FastMCP.add_tool()` related to `input_schema`.
@@ -42,6 +47,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed `ValidationError` for missing `params` argument in tools when called from MCP Inspector by using `default_factory` for Pydantic model arguments.
 - Corrected indentation errors in `ise_mcp.py`.
 - Improved error handling for API calls by specifically catching `httpx.HTTPStatusError` and `httpx.RequestError`.
+- Fixed Docker startup error with stdio transport by conditionally passing parameters based on transport type.
+- Fixed setup.py to correctly use src-layout pattern for Python packaging.
 
 ### Removed
 - Custom JSON-RPC server implementation.

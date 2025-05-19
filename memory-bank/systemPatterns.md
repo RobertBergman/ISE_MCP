@@ -2,53 +2,101 @@
 
 ## System Architecture
 
-The `ise_mcp` server is a Python application designed to act as a Model Context Protocol (MCP) gateway to a Cisco ISE (Identity Services Engine) API.
+The `ise_mcp` server is a Python application designed to act as a Model Context Protocol (MCP) gateway to a Cisco ISE (Identity Services Engine) API. It has been restructured with a modular architecture.
 
 **Core Components:**
-1.  **`src/cisco/ISE/ise_mcp_server/server.py` (FastMCP Server Logic):**
-    *   The main application logic for the MCP server.
+1.  **Modular Package Structure:**
+    *   The server is now organized as a proper Python package with clear separation of concerns:
+    ```
+    src/
+    └── ise_mcp_server/
+        ├── __init__.py
+        ├── __main__.py          # Command-line entry point
+        ├── server.py            # Main server class
+        ├── config/              # Configuration-related modules
+        │   ├── __init__.py
+        │   ├── settings.py      # Environment variables and settings
+        │   ├── urls.json        # URL definitions for the API endpoints
+        │   └── urls_config.py   # Functions to load URLs configuration
+        ├── core/                # Core functionality
+        │   ├── __init__.py
+        │   ├── models.py        # Pydantic models for tool inputs
+        │   └── utils.py         # Utility functions
+        ├── api/                 # API client
+        │   ├── __init__.py
+        │   └── client.py        # ISE API client
+        └── tools/               # Tool-related modules
+            ├── __init__.py
+            └── factory.py       # Tool factory
+    ```
+
+2.  **`src/ise_mcp_server/server.py` (Main Server Class):**
+    *   Now implemented as a class `ISEMCPServer` that encapsulates the server logic.
     *   Uses the `fastmcp` library to implement an MCP server.
-    *   Loads Cisco ISE API endpoint definitions from `src/cisco/ISE/ise_mcp_server/urls.json` (relative to the script, or `/app/urls.json` in Docker).
-    *   Dynamically generates and registers MCP tools, one for each API endpoint.
-    *   Defines Pydantic models (`FilterableToolInput`, `NonFilterableToolInput`) to structure tool arguments.
-    *   Handles incoming MCP requests (e.g., `tools/discover`, `tools/call`).
-    *   Includes an asynchronous main execution block (`_main_async`) for proper handling of async FastMCP methods.
-    *   Uses `sys.exit(1)` if critical environment variables are missing.
-2.  **`Dockerfile`:**
-    *   Defines the Docker image `ise-mcp:latest`.
-    *   Based on `python:3.11-slim`.
-    *   Copies `requirements.txt` (from project root), `src/cisco/ISE/ise_mcp_server/server.py` (as `/app/server.py`), and `src/cisco/ISE/ise_mcp_server/urls.json` (as `/app/urls.json`) into the image.
-    *   Installs Python dependencies.
-    *   Sets `PYTHONUNBUFFERED=1`.
-    *   Crucially, the `ENTRYPOINT` is configured to run the server with `stdio` transport for Claude Desktop compatibility:
-        ```dockerfile
-        ENTRYPOINT ["fastmcp", "run", "server.py", "--transport", "stdio"]
-        ```
-    *   Does **not** copy the `.env` file into the image.
-3.  **`src/cisco/ISE/ise_mcp_server/urls.json` (Configuration File):**
-    *   A JSON array defining the Cisco ISE API endpoints to be exposed as tools.
-    *   Each entry specifies:
-        *   `URL`: The relative path of the ISE API endpoint.
-        *   `Name`: A human-readable name for the endpoint, used to derive the tool name.
-        *   `FilterableFields`: An array of strings listing known filterable attributes for that endpoint (user-maintained).
-4.  **Environment Variables (`.env` file):**
-    *   Located in the project root (`/Users/berg276/mcp_servers/ISE_MCP/.env`).
-    *   Stores sensitive configuration:
-        *   `ISE_BASE`: The base URL of the Cisco ISE instance.
-        *   `USERNAME`: Username for Cisco ISE API authentication.
-        *   `PASSWORD`: Password for Cisco ISE API authentication.
-        *   `ISE_VERIFY_SSL`: (Optional) Controls SSL certificate verification (`true`, `false`, or path to CA bundle).
-    *   This file is **not** part of the Docker image but is loaded into the container at runtime by Docker itself (via `--env-file` in the `docker run` command used by Claude Desktop).
-5.  **Dynamic Tool Functions (within `src/cisco/ISE/ise_mcp_server/server.py`):**
-    *   Generated at runtime for each entry in `src/cisco/ISE/ise_mcp_server/urls.json` (or `/app/urls.json` in Docker).
-    *   Each function is responsible for:
-        *   Accepting an optional Pydantic model instance (`params: FilterableToolInput` or `params: NonFilterableToolInput`) as its argument, with `default_factory` ensuring an instance is created if no argument is passed.
-        *   Extracting `filter_expression` and `query_params` from the `params` object.
-        *   Constructing the full API request URL, including any filters.
-        *   Making an asynchronous GET request to the Cisco ISE API using `httpx.AsyncClient`.
-        *   Handling API responses and errors (including `httpx.HTTPStatusError` and `httpx.RequestError`), raising `ToolError` for client visibility.
-        *   Returning the JSON response from ISE.
-    *   These functions are registered with the `FastMCP` instance using `mcp.add_tool()`.
+    *   Delegates URL loading to the `config.urls_config` module.
+    *   Delegates tool creation to the `tools.factory` module.
+    *   Delegates API communication to the `api.client` module.
+    *   Handles server lifecycle (initialization, tool registration, startup).
+    *   Includes an asynchronous `start()` method for proper handling of async FastMCP methods.
+
+3.  **`src/ise_mcp_server/__main__.py` (CLI Entry Point):**
+    *   New module that provides a command-line interface.
+    *   Parses command-line arguments for host, port, and transport.
+    *   Creates and starts an instance of `ISEMCPServer`.
+    *   Enables running the server as a module with `python -m src.ise_mcp_server`.
+
+4.  **`src/ise_mcp_server/config/settings.py` (Configuration):**
+    *   Centralized configuration management.
+    *   Loads environment variables from `.env` file.
+    *   Validates critical settings.
+    *   Determines SSL verification configuration.
+    *   Defines default server settings.
+
+5.  **`src/ise_mcp_server/config/urls_config.py` (URL Configuration):**
+    *   Responsible for loading the URL definitions from JSON.
+    *   Handles file location resolution and error handling.
+    *   Returns a list of URL definitions.
+
+6.  **`src/ise_mcp_server/core/models.py` (Data Models):**
+    *   Defines Pydantic models for tool arguments.
+    *   `FilterableToolInput` for endpoints that support filtering.
+    *   `NonFilterableToolInput` for endpoints that don't support filtering.
+
+7.  **`src/ise_mcp_server/core/utils.py` (Utilities):**
+    *   Common utility functions.
+    *   Name sanitization for tool names.
+    *   Function to generate tool docstrings.
+    *   Filter expression processing.
+
+8.  **`src/ise_mcp_server/api/client.py` (API Client):**
+    *   Encapsulates API communication logic.
+    *   Makes asynchronous GET requests to Cisco ISE using `httpx.AsyncClient`.
+    *   Handles authentication and SSL verification.
+    *   Processes API responses and errors.
+
+9.  **`src/ise_mcp_server/tools/factory.py` (Tool Factory):**
+    *   Implements the Factory Pattern explicitly.
+    *   Creates tool functions from URL definitions.
+    *   Determines the appropriate input model based on filtering support.
+    *   Sets tool name and docstring.
+
+10. **`Dockerfile` (Updated):**
+    *   Now installs the entire package.
+    *   Uses `setup.py` to make the package installable.
+    *   Updated `ENTRYPOINT` to use the module directly:
+    ```dockerfile
+    ENTRYPOINT ["python", "-m", "ise_mcp_server", "--transport", "stdio"]
+    ```
+
+11. **`setup.py` (Top-level):**
+    *   Makes the package installable with pip using src-layout.
+    *   Defines package metadata and dependencies.
+    *   Registers a console script entry point `ise-mcp-server`.
+
+12. **Environment Variables (`.env` file):**
+    *   Same as before, located in the project root.
+    *   Stores sensitive configuration for ISE connection.
+    *   Not part of the Docker image but loaded at runtime.
 
 **Workflow (with Claude Desktop):**
 ```mermaid
@@ -56,59 +104,75 @@ sequenceDiagram
     participant ClaudeDesktop as Claude Desktop
     participant DockerDaemon as Docker Daemon
     participant DockerContainer as Docker Container (ise-mcp:latest)
-    participant FastMCPServer as server.py (inside container, at /app/server.py)
+    participant ISEMCPServer as ISEMCPServer class
+    participant ToolFactory as ToolFactory class
+    participant ISEApiClient as ISEApiClient class
     participant CiscoISE as Cisco ISE API
 
     ClaudeDesktop->>DockerDaemon: Execute `docker run -i --rm --env-file=.env ise-mcp:latest` (from config)
     DockerDaemon->>DockerContainer: Start container, load .env vars
-    DockerContainer->>FastMCPServer: ENTRYPOINT executes `fastmcp run server.py --transport stdio`
-    Note over FastMCPServer: Server starts, listening on STDIO
+    DockerContainer->>ISEMCPServer: ENTRYPOINT executes `fastmcp run ise_mcp_server.__main__ --transport stdio`
+    Note over ISEMCPServer: Server initializes
+    ISEMCPServer->>ToolFactory: Create tools from URL definitions
+    ToolFactory-->>ISEMCPServer: Return tool functions
+    ISEMCPServer->>ISEMCPServer: Register tools with FastMCP
+    ISEMCPServer->>ISEMCPServer: Start server with STDIO transport
 
     ClaudeDesktop->>DockerContainer: MCP Request (via STDIO) (e.g., tools/discover)
-    DockerContainer->>FastMCPServer: Forwards request via STDIO
-    FastMCPServer-->>DockerContainer: MCP Response (via STDIO)
+    DockerContainer->>ISEMCPServer: Forwards request via STDIO
+    ISEMCPServer-->>DockerContainer: MCP Response (via STDIO)
     DockerContainer-->>ClaudeDesktop: Forwards response via STDIO
 
     ClaudeDesktop->>DockerContainer: MCP Request (tools/call tool_name, args)
-    DockerContainer->>FastMCPServer: Forwards request via STDIO
-    Note over FastMCPServer: Reads ISE_BASE, USERNAME, PASSWORD, ISE_VERIFY_SSL from env (passed by Docker)
-    Note over FastMCPServer: Exits if critical env vars are missing
-    Note over FastMCPServer: Parses 'params' argument
-    Note over FastMCPServer: Constructs API URL
-    FastMCPServer->>CiscoISE: Async HTTP GET (API_URL, auth, params, SSL verify)
-    CiscoISE-->>FastMCPServer: HTTP Response (JSON data or error)
-    FastMCPServer-->>DockerContainer: Tool Result (JSON data or MCP error via STDIO)
+    DockerContainer->>ISEMCPServer: Forwards request via STDIO
+    ISEMCPServer->>ISEApiClient: Call API with parameters
+    ISEApiClient->>CiscoISE: Async HTTP GET (API_URL, auth, params, SSL verify)
+    CiscoISE-->>ISEApiClient: HTTP Response (JSON data or error)
+    ISEApiClient-->>ISEMCPServer: Return API response or raise error
+    ISEMCPServer-->>DockerContainer: Tool Result (JSON data or MCP error via STDIO)
     DockerContainer-->>ClaudeDesktop: Forwards result via STDIO
 ```
 
 ## Key Technical Decisions
 
-- **`fastmcp` Library:** Chosen for implementing the MCP server.
-- **Docker for Deployment:** The server is packaged and run as a Docker container, especially for Claude Desktop integration.
-- **STDIO Transport for Docker/Claude Desktop & Local `uv` execution:** The Docker image's `ENTRYPOINT` uses `stdio` transport. The `uv ... fastmcp run` command also specifies `stdio`.
-- **`.env` File for Configuration:** Sensitive credentials and ISE base URL are managed in a `.env` file. This file is *not* part of the Docker image but loaded by Docker at runtime (via `--env-file`) or by `fastmcp run` when using `uv`.
-- **Dynamic Tool Generation:** Tools are generated from `urls.json`.
-- **Pydantic for Tool Arguments:** Tool functions accept a Pydantic model instance.
-- **`httpx.AsyncClient` Library:** Used for asynchronous HTTP requests to Cisco ISE.
-- **Asynchronous Main Execution:** The server logic in `src/cisco/ISE/ise_mcp_server/server.py` is asynchronous.
-- **Graceful Exit:** `sys.exit(1)` is used if critical environment variables are missing.
+- **Modular Architecture:** Reorganized code into logical modules with clear separation of concerns.
+- **Explicit Class Structure:** Replaced loose functions with explicit classes for better encapsulation.
+- **`fastmcp` Library:** Continues to be the core library for implementing the MCP server.
+- **Docker for Deployment:** Updated for the new structure but maintains the same deployment approach.
+- **Package Structure:** Now organized as a proper Python package with `setup.py` for installation.
+- **CLI Module:** Added proper command-line argument parsing and entry point.
+- **`.env` File for Configuration:** Maintained the same approach for sensitive credentials.
+- **Explicit Factory Pattern:** Replaced implicit factory with a dedicated `ToolFactory` class.
+- **API Client:** Encapsulated API communication in a dedicated client class.
+- **`httpx.AsyncClient` Library:** Continued use for asynchronous HTTP requests.
+- **Asynchronous Operation:** Maintained throughout the codebase.
+- **Graceful Exit:** Maintained for critical configuration issues.
 
 ## Design Patterns in Use
 
-- **Factory Pattern (Implicit):** `create_tool_function` in `src/cisco/ISE/ise_mcp_server/server.py`.
-- **Configuration File:** `src/cisco/ISE/ise_mcp_server/urls.json` for tool definitions, `.env` for runtime configuration.
+- **Factory Pattern (Explicit):** `ToolFactory` class in `tools/factory.py`.
+- **Singleton Pattern (Implicit):** Single instance of server, factory, and client classes.
+- **Dependency Injection (Implicit):** Factory and client instances provided to server.
+- **Configuration Object:** Centralized settings in `config/settings.py`.
+- **Repository Pattern:** `ISEApiClient` encapsulates data access.
+- **Command Pattern (Implicit):** CLI commands processed by `__main__.py`.
+- **Facade Pattern:** `ISEMCPServer` provides a simplified interface to the underlying components.
 - **Containerization:** Using Docker to package and run the application.
 
 ## Component Relationships
 
 - Claude Desktop configuration points to `docker run` command.
-- `docker run` uses the `ise-mcp:latest` image built from `Dockerfile`.
-- `Dockerfile` copies `src/cisco/ISE/ise_mcp_server/server.py` (as `/app/server.py`) and runs it.
-- The server script (`/app/server.py` inside the container) depends on `/app/urls.json` and environment variables (from `.env` via Docker).
-- `src/cisco/ISE/ise_mcp_server/server.py` uses `fastmcp`, `httpx`, `pydantic`, `python-dotenv`, etc.
+- `docker run` uses the `ise-mcp:latest` image built from the updated `Dockerfile`.
+- `Dockerfile` installs the entire package and runs it via the `__main__` module.
+- The `ISEMCPServer` class uses `ToolFactory` to create tools and FastMCP to expose them.
+- The `ToolFactory` uses `ISEApiClient` for API communication.
+- All components use the centralized configuration from `config/settings.py`.
 
 ## Critical Implementation Paths
-- **Dockerfile `ENTRYPOINT`:** Must correctly specify `stdio` transport.
-- **Claude Desktop Configuration:** Must use `docker run` with `-i` and `--env-file` pointing to the host's `.env` file.
-- **`.env` File Handling:** Ensuring Docker correctly loads variables from the host's `.env` file into the container.
-- **Tool Generation Loop & API Call Logic:** As previously defined.
+
+- **Package Structure:** Must maintain proper Python package conventions.
+- **Module Imports:** Must use correct relative imports between modules.
+- **Dockerfile `ENTRYPOINT`:** Must correctly specify the module path and transport.
+- **Claude Desktop Configuration:** Must continue to use `docker run` with proper arguments.
+- **`.env` File Handling:** Ensuring Docker correctly loads variables from the host's `.env` file.
+- **URLs Configuration Loading:** Must handle both old and new file locations for backward compatibility.

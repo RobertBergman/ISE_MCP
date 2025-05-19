@@ -133,3 +133,4 @@ cython_debug/
 
 # Custom ignores
 .clinerules
+.claude
