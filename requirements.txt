@@ -1,4 +1,6 @@
-requests
 pydantic
 python-dotenv
 fastmcp
+httpx
+aiocache
+aiolimiter
